@@ -1,0 +1,6 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="clr-namespace:MainApplication"
+                    xmlns:sys ="clr-namespace:System;assembly=mscorlib">
+    <sys:String x:Key="WinTitle">华腾医疗 中央监护系统</sys:String>
+</ResourceDictionary>
