@@ -23,11 +23,11 @@ namespace MainApplication.ViewModel
     /// </summary>
     public class MainViewModel : ViewModelBase
     {
-        /// <summary>
-        /// Initializes a new instance of the MainViewModel class.
-        /// </summary>
+        AsyncServerCore server;
+
         public MainViewModel()
         {
+            server = new AsyncServerCore();
         }
 
         public IEnumerable<string> IPAddressList
@@ -50,14 +50,15 @@ namespace MainApplication.ViewModel
             {
                 return new RelayCommand(() =>
                 {
-                    AsyncServerCore.StartListening(IPAddress.Parse(SelectedAddress));
+                    IPEndPoint endPoint = new IPEndPoint(IPAddress.Parse(SelectedAddress), 11000);
+                    server.Init();
+                    server.StartListening(endPoint);
                 });
             }
         }
 
         public override void Cleanup()
         {
-            AsyncServerCore.CloseServer();
             base.Cleanup();
         }
     }

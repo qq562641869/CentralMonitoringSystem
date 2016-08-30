@@ -73,6 +73,12 @@ namespace MainApplication.Model
             buffer = new byte[totalBytes];
         }
 
+        public void Count()
+        {
+            int current = m_currentIndex;
+            int max = totalBytes;
+        }
+
         /// <summary>
         /// Removes the buffer from a SocketAsyncEventArg object.  
         /// This frees the buffer back to the buffer pool
@@ -132,6 +138,8 @@ namespace MainApplication.Model
 
     class AsyncUserToken
     {
+        public Socket Socket { get; set; }
+        public DateTime LastActive { get; set; }
         public AsyncUserToken() { }
     }
 
@@ -181,6 +189,12 @@ namespace MainApplication.Model
             maxAcceptedClients = new Semaphore(maxConnections / 2, maxConnections);
         }
 
+        /// <summary>
+        /// Initializes the server by preallocating reusable buffers and 
+        /// context objects.  These objects do not need to be preallocated 
+        /// or reused, but it is done this way to illustrate how the API can 
+        /// easily be used to create reusable objects to increase server performance.
+        /// </summary>
         public void Init()
         {
             bufferManager.InitBuffer();
@@ -189,7 +203,22 @@ namespace MainApplication.Model
             for (int n = 0; n < maxConnections; n++)
             {
                 SocketAsyncEventArgs readWriteEventArg = new SocketAsyncEventArgs();
-                readWriteEventArg.Completed += new EventHandler<SocketAsyncEventArgs>(io_Completed);
+                readWriteEventArg.Completed += (s, e) =>
+                {
+                    // determine which type of operation just completed and call the associated handler
+                    switch (e.LastOperation)
+                    {
+                        case SocketAsyncOperation.Receive:
+                            processReceive(e);
+                            break;
+                        case SocketAsyncOperation.Send:
+                            processSend(e);
+                            break;
+                        default:
+                            break;
+                            throw new ArgumentException("The last operation completed on the socket was not a receive or send");
+                    }
+                };
                 readWriteEventArg.UserToken = new AsyncUserToken();
 
                 //assign a byte buffer from the buffer pool to the SocketAsyncEventArg object
@@ -198,12 +227,8 @@ namespace MainApplication.Model
                 //add SocketAsyncEventArg to the pool
                 readWritePool.Push(readWriteEventArg);
             }
+            bufferManager.Count();
         }
-
-
-        
-        static CancellationTokenSource endTaks = new CancellationTokenSource();
-
 
         public void StartListening(IPEndPoint endpoint)
         {
@@ -234,7 +259,7 @@ namespace MainApplication.Model
             if (acceptEventArg == null)
             {
                 acceptEventArg = new SocketAsyncEventArgs();
-                acceptEventArg.Completed += new EventHandler<SocketAsyncEventArgs>(accept_Completed);
+                acceptEventArg.Completed += (s,e) => processAccept(e);
             }
             else
             {
@@ -242,45 +267,129 @@ namespace MainApplication.Model
                 acceptEventArg.AcceptSocket = null;
             }
 
+            //wait if more that maxAcceptedClients
             maxAcceptedClients.WaitOne();
-            bool willRaiseEvent = listener.AcceptAsync(acceptEventArg);
-            if (!willRaiseEvent)
+
+            bool manualRaiseEvent = listener.AcceptAsync(acceptEventArg);
+            //Returns false if the I/O operation completed synchronously
+            //and the SocketAsyncEventArgs.Completed event on the e parameter will not be raised
+            if (!manualRaiseEvent)
             {
-                ProcessAccept(acceptEventArg);
+                processAccept(acceptEventArg);
+            }
+        }
+        
+        private void processAccept(SocketAsyncEventArgs e)
+        {
+            Interlocked.Increment(ref connectedSockets);
+            /*
+                        // Get the socket for the accepted client connection and put it into the ReadEventArg object user token
+                        SocketAsyncEventArgs readEventArgs = readWritePool.Pop();
+                        AsyncUserToken token = readEventArgs.UserToken as AsyncUserToken;
+                        token.Socket = e.AcceptSocket;
+
+                                    // As soon as the client is connected, post a receive to the connection
+                                    bool manualRaiseEvent = token.Socket.ReceiveAsync(readEventArgs);
+                                    if (!manualRaiseEvent)
+                                    {
+                                        processReceive(readEventArgs);
+                                    }
+                        */
+            SocketAsyncEventArgs sendEventArgs = readWritePool.Pop();
+            AsyncUserToken token = sendEventArgs.UserToken as AsyncUserToken;
+            token.Socket = e.AcceptSocket;
+            bool manualRaiseEvent = token.Socket.SendAsync(sendEventArgs);
+            if (!manualRaiseEvent)
+            {
+                processReceive(sendEventArgs);
+            }
+
+            // Accept the next connection request
+            startAccept(e);
+        }
+        
+        private void processReceive(SocketAsyncEventArgs e)
+        {
+            // check if the remote host closed the connection
+            AsyncUserToken token = e.UserToken as AsyncUserToken;
+            if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success)
+            {
+                //increment the count of the total bytes receive by the server
+                Interlocked.Add(ref totalBytesRead, e.BytesTransferred);
+
+                //填充buffer数据后, 设置数据长度
+                //...
+                string clientMsg = Encoding.ASCII.GetString(e.Buffer, e.Offset, e.BytesTransferred);
+                //echo the data received back to the client
+                byte[] buf = Encoding.ASCII.GetBytes(DateTime.Now + ": This is from Server. How You Doing?");
+                int n = e.Offset;
+                foreach(var b in buf)
+                {
+                    e.Buffer[n++] = b;
+                }
+                e.SetBuffer(e.Offset, buf.Length);
+                //socket的send方法, 拷贝数据到基础系统的发送缓冲区, 然后由基础系统将缓冲区数据发生到另一端口
+                //异步发送消息的拷贝, 将socket自带的buffer空间所有数据, 拷贝到基础系统发送缓冲区
+                //执行线程无需IO等待, 立即返回
+                bool manualRaiseEvent = token.Socket.SendAsync(e);
+                if (!manualRaiseEvent)
+                {
+                    processSend(e);
+                }
+            }
+            else
+            {
+                closeClientSocket(e);
+            }
+        }
+        
+        private void processSend(SocketAsyncEventArgs e)
+        {
+            if (e.SocketError == SocketError.Success)
+            {
+                /*
+                SocketAsyncEventArgs sendEventArgs = readWritePool.Pop();
+                AsyncUserToken token = sendEventArgs.UserToken as AsyncUserToken;
+                token.Socket = e.AcceptSocket;
+                */
+
+                Interlocked.Add(ref totalByteWrite, e.BytesTransferred);
+/*
+                // done echoing data back to the client
+                AsyncUserToken token = e.UserToken as AsyncUserToken;
+                // read the next block of data send from the client
+                bool manualRaiseEvent = token.Socket.ReceiveAsync(e);
+                if (!manualRaiseEvent)
+                {
+                    processReceive(e);
+                }
+                */
+            }
+            else
+            {
+                closeClientSocket(e);
             }
         }
 
-        void io_Completed(object sender, SocketAsyncEventArgs e)
+        private void closeClientSocket(SocketAsyncEventArgs e)
         {
-            // determine which type of operation just completed and call the associated handler
-            switch (e.LastOperation)
+            AsyncUserToken token = e.UserToken as AsyncUserToken;
+
+            // close the socket associated with the client
+            try
             {
-                case SocketAsyncOperation.Receive:
-                    //  ProcessReceive(e);
-                    break;
-                case SocketAsyncOperation.Send:
-                    //   ProcessSend(e);
-                    break;
-                default:
-                    break;
-                    //throw new ArgumentException("The last operation completed on the socket was not a receive or send");
+                token.Socket.Shutdown(SocketShutdown.Send);
             }
+            // throws if client process has already closed
+            catch (Exception) { }
+            token.Socket.Close();
 
-        }
-
-        /// <summary>
-        /// This method is the callback method associated with Socket.AcceptAsync operations and is invoked when an accept operation is complete
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        void accept_Completed(object sender, SocketAsyncEventArgs e)
-        {
-
-        }
-
-        public static void CloseServer()
-        {
-            endTaks.Cancel();
+            // decrement the counter keeping track of the total number of clients connected to the server
+            Interlocked.Decrement(ref connectedSockets);
+            maxAcceptedClients.Release();
+            
+            // Free the SocketAsyncEventArg so they can be reused by another client
+            readWritePool.Push(e);
         }
     }
 }
