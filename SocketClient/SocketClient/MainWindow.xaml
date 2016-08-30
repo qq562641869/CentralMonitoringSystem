@@ -1,17 +1,16 @@
-﻿<Window x:Class="MainApplication.MainWindow"
+﻿<Window x:Class="SocketClient.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:MainApplication"
+        xmlns:local="clr-namespace:SocketClient"
         mc:Ignorable="d"
         DataContext="{Binding Main, Source={StaticResource Locator}}"
-        Title="{StaticResource WinTitle}"
-        Height="480" Width="640">
+        Title="MainWindow" Height="240" Width="320">
     <Grid>
         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top">
             <ComboBox Width="200" Margin="4" ItemsSource="{Binding IPAddressList}" SelectedValue="{Binding SelectedAddress, Mode=TwoWay}"/>
-            <Button Width="100" Margin="4" Content="Start Listening" Command="{Binding StartServerCmd}"/>
+            <Button Content="连接服务器" Command="{Binding ConnectServerCmd}"/>
         </StackPanel>
     </Grid>
 </Window>

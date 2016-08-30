@@ -1,13 +1,13 @@
 using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.Command;
 using System.Windows.Input;
-using MainApplication.Model;
 using System.Net;
 using System.Linq;
 using System.Net.Sockets;
 using System.Collections.Generic;
+using SocketClient.Model;
 
-namespace MainApplication.ViewModel
+namespace SocketClient.ViewModel
 {
     /// <summary>
     /// This class contains properties that the main View can data bind to.
@@ -44,20 +44,20 @@ namespace MainApplication.ViewModel
 
         public string SelectedAddress { get; set; }
 
-        public ICommand StartServerCmd
+        public ICommand ConnectServerCmd
         {
             get
             {
                 return new RelayCommand(() =>
                 {
-                    AsyncServerCore.StartListening(IPAddress.Parse(SelectedAddress));
+                    AsyncClientCore.ConnectServer(IPAddress.Parse(SelectedAddress));
                 });
             }
         }
 
         public override void Cleanup()
         {
-            AsyncServerCore.CloseServer();
+            AsyncClientCore.ShutDown();
             base.Cleanup();
         }
     }
