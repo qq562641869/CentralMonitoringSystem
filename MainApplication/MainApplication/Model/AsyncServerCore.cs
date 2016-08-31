@@ -318,7 +318,6 @@ namespace MainApplication.Model
                 Interlocked.Add(ref totalBytesRead, e.BytesTransferred);
 
                 //填充buffer数据后, 设置数据长度
-                //...
                 string clientMsg = Encoding.ASCII.GetString(e.Buffer, e.Offset, e.BytesTransferred);
                 //echo the data received back to the client
                 byte[] buf = Encoding.ASCII.GetBytes(DateTime.Now + ": This is from Server. How You Doing?");

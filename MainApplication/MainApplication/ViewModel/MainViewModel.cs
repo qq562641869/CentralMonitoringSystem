@@ -1,11 +1,13 @@
 using GalaSoft.MvvmLight;
 using GalaSoft.MvvmLight.Command;
-using System.Windows.Input;
 using MainApplication.Model;
-using System.Net;
-using System.Linq;
-using System.Net.Sockets;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Windows;
+using System.Windows.Input;
 
 namespace MainApplication.ViewModel
 {
@@ -23,11 +25,11 @@ namespace MainApplication.ViewModel
     /// </summary>
     public class MainViewModel : ViewModelBase
     {
-        AsyncServerCore server;
+        CustomServer server;
 
         public MainViewModel()
         {
-            server = new AsyncServerCore();
+            server = new CustomServer();
         }
 
         public IEnumerable<string> IPAddressList
@@ -51,9 +53,23 @@ namespace MainApplication.ViewModel
                 return new RelayCommand(() =>
                 {
                     IPEndPoint endPoint = new IPEndPoint(IPAddress.Parse(SelectedAddress), 11000);
-                    server.Init();
-                    server.StartListening(endPoint);
+                    server.ClientStatusChanged += (s, e) =>
+                    {
+                        Application.Current.Dispatcher.Invoke(() => messageList.Add(e.Messsage));
+                    };
+                    server.StartServer(endPoint);
                 });
+            }
+        }
+
+        ObservableCollection<string> messageList;
+        public ObservableCollection<string> MessageList
+        {
+            get
+            {
+                if (messageList == null)
+                    messageList = new ObservableCollection<string>();
+                return messageList;
             }
         }
 

@@ -44,21 +44,22 @@ namespace SocketClient.Model
 
             Task.Run(async () =>
             {
+                int count = 0;
                 while (true)
                 {
                     //send data
                     sendDone.Reset();
 
-                    
+
                     StateObject obj = new StateObject();
                     obj.workSocket = client;
-                    client.BeginReceive(obj.buffer, 0, StateObject.BufferSize,0, new AsyncCallback(recvCallback), obj);
+                    //   client.BeginReceive(obj.buffer, 0, StateObject.BufferSize,0, new AsyncCallback(recvCallback), obj);
 
-                    byte[] buf = Encoding.ASCII.GetBytes(DateTime.Now + ": This is from client.");
+                    byte[] buf = Encoding.ASCII.GetBytes(string.Format("This is from client cnt:{0} {1}", count++, DateTime.Now));
                     client.BeginSend(buf, 0, buf.Length, 0, new AsyncCallback(sendCallback), client);
                     sendDone.WaitOne();
 
-                    await Task.Delay(1000);
+                    await Task.Delay(500);
                 }
             });
         }

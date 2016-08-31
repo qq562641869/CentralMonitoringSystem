@@ -12,6 +12,7 @@
         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top">
             <ComboBox Width="200" Margin="4" ItemsSource="{Binding IPAddressList}" SelectedValue="{Binding SelectedAddress, Mode=TwoWay}"/>
             <Button Width="100" Margin="4" Content="Start Listening" Command="{Binding StartServerCmd}"/>
+            <ListView Width="200" Height="320" Margin="4" ItemsSource="{Binding MessageList}"/>
         </StackPanel>
     </Grid>
 </Window>
