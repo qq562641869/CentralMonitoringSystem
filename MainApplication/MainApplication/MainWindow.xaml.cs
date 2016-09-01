@@ -13,6 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using MainApplication.ViewModel;
+using MainApplication.View;
 
 namespace MainApplication
 {
@@ -25,6 +26,13 @@ namespace MainApplication
         {
             InitializeComponent();
             this.Closing += (a, b) => ViewModelLocator.Cleanup();
+        }
+
+        private void MonitorButton_Click(object sender, RoutedEventArgs e)
+        {
+            MonitorWindow monitor = new MonitorWindow();
+            monitor.Owner = this;
+            monitor.Show();
         }
     }
 }

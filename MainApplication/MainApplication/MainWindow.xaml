@@ -13,6 +13,7 @@
             <ComboBox Width="200" Margin="4" ItemsSource="{Binding IPAddressList}" SelectedValue="{Binding SelectedAddress, Mode=TwoWay}"/>
             <Button Width="100" Margin="4" Content="Start Listening" Command="{Binding StartServerCmd}"/>
             <ListView Width="200" Height="320" Margin="4" ItemsSource="{Binding MessageList}"/>
+            <Button Width="100" Margin="4" Content="Show Monitor" Click="MonitorButton_Click"/>
         </StackPanel>
     </Grid>
 </Window>

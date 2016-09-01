@@ -32,6 +32,8 @@ namespace MainApplication.ViewModel
             ServiceLocator.SetLocatorProvider(() => SimpleIoc.Default);
 
             SimpleIoc.Default.Register<MainViewModel>();
+
+            SimpleIoc.Default.Register<MonitorViewModel>();
         }
 
         public MainViewModel Main
@@ -39,6 +41,14 @@ namespace MainApplication.ViewModel
             get
             {
                 return ServiceLocator.Current.GetInstance<MainViewModel>();
+            }
+        }
+
+        public MonitorViewModel Monitor
+        {
+            get
+            {
+                return ServiceLocator.Current.GetInstance<MonitorViewModel>();
             }
         }
 

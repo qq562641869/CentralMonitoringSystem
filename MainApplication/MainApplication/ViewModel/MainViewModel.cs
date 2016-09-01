@@ -52,12 +52,7 @@ namespace MainApplication.ViewModel
             {
                 return new RelayCommand(() =>
                 {
-                    IPEndPoint endPoint = new IPEndPoint(IPAddress.Parse(SelectedAddress), 11000);
-                    server.ClientStatusChanged += (s, e) =>
-                    {
-                        Application.Current.Dispatcher.Invoke(() => messageList.Add(e.Messsage));
-                    };
-                    server.StartServer(endPoint);
+                    ClientCore core = new ClientCore(100);
                 });
             }
         }
